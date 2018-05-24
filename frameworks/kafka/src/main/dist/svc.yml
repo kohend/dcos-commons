@@ -76,7 +76,7 @@ pods:
         goal: RUNNING
         cmd: |
           # Exit on any error.
-          #set -e
+          set -e
 
           export JAVA_HOME=$(ls -d $MESOS_SANDBOX/jdk*/jre/)
       {{#TASKCFG_ALL_SECURITY_KERBEROS_ENABLED}}
@@ -101,13 +101,16 @@ pods:
           export SETUP_HELPER_SECURITY_INTER_BROKER_PROTOCOL=`cat security.inter.broker.protocol`
           export SETUP_HELPER_SUPER_USERS=`cat super.users`
 
-          find ./ -name "*properties*"
-          sed -iold -e "/# advertised\.listeners=PLAINTEXT:\/\/your\.host\.name:9092/a \
-            $SETUP_HELPER_LISTENERS" -e "/# advertised\.listeners=PLAINTEXT:\/\/your\.host\.name:9092/a \
-            $SETUP_HELPER_ADVERTISED_LISTENERS" $MESOS_SANDBOX/config-templates/server-properties
-          echo sed -i old "/## Inter Broker Protocol/a \
-            $SETUP_HELPER_SECURITY_INTER_BROKER_PROTOCOL" $MESOS_SANDBOX/config-templates/server-properties
-          echo sed -i old "s/super\.users=/super.users=$SETUP_HELPER_SUPER_USERS/" $MESOS_SANDBOX/config-templates/server-properties
+          # Updating server.properties file with parameters obtained by setup-helper
+          sed -i.old -e "/# advertised\.listeners=PLAINTEXT:\/\/your\.host\.name:9092/a \
+            $SETUP_HELPER_LISTENERS" \
+            -e "/# advertised\.listeners=PLAINTEXT:\/\/your\.host\.name:9092/a \
+            $SETUP_HELPER_ADVERTISED_LISTENERS" \
+            -e "/## Inter Broker Protocol/a \
+            $SETUP_HELPER_SECURITY_INTER_BROKER_PROTOCOL" \
+            -e "s/super\.users=/super.users=$SETUP_HELPER_SUPER_USERS/" \
+            $MESOS_SANDBOX/{{KAFKA_VERSION_PATH}}/config/server.properties
+
           # NOTE: We add some custom statsd libraries for statsd metrics as well
           # as a custom zookeeper library to support our own ZK running
           # kerberized. The custom zk library does not do DNS reverse resolution
